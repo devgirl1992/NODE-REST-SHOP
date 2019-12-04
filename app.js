@@ -8,6 +8,12 @@ const cors = require("cors");
 const productRoutes = require("./api/routes/products");
 const orderRoutes = require("./api/routes/orders");
 
+
+// Routes which should handle requests
+app.use("/products", productRoutes);
+app.use("/order", orderRoutes);
+
+
 //for connect to database
 mongoose.set("useNewUrlParser", true);
 mongoose.set("useFindAndModify", false);
@@ -26,6 +32,8 @@ mongoose
 // parse application/json
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(morgan("dev"));
+app.use("/uploads", express.static("uploads"));
 
 //handling CROS errors(client and server have different url,then so fixed promlem to allow client access server)
 // app.use((req, rs, next) => {
@@ -44,9 +52,7 @@ app.use(bodyParser.json());
 // });
 app.use(cors());
 
-// Routes which should handle requests
-app.use("/products", productRoutes);
-app.use("/order", orderRoutes);
+
 
 //error handeling
 app.use((req, res, next) => {

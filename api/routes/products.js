@@ -1,12 +1,37 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
+const multer = require("multer");
+
+//store file in nicer way
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+  cb(null, "./uploads/");
+  },
+  filename: function(req, file, cb) {
+  cb(null,  file.originalname);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype === "image/jpeg" || file.mimetype === "image.png") {  
+      cb(null, true); //saved file
+   }else {
+      cb(null, false); //not saved
+}
+}
+
+const upload = multer({
+  storage: storage, 
+  limits: {fileSize: 1024 * 1024 * 5},
+  fileFilter: fileFilter
+});
 
 const ProductSchema = require("../models/productSchema");
 
 router.get("/", (req, res, next) => {
   ProductSchema.find()
-    .select("name price id")
+    .select("name price id productImage")
     .exec()
     .then(data => {
       const response = {
@@ -16,6 +41,7 @@ router.get("/", (req, res, next) => {
             id: dt._id,
             name: dt.name,
             price: dt.price,
+            productImage: dt.productImage,
             req: {
               method: "get",
               url: "http://localhost:3000/products/" + dt._id
@@ -40,12 +66,13 @@ router.get("/", (req, res, next) => {
     });
 });
 
-router.post("/", (req, res, next) => {
+router.post("/", upload.single("productImage") , (req, res, next) => {
   //useed mongoose schema models
   const product = new ProductSchema({
     productId: new mongoose.Types.ObjectId(),
     name: req.body.name,
-    price: req.body.price
+    price: req.body.price,
+    productImage: req.file.path
   });
 
   product
@@ -73,12 +100,13 @@ router.post("/", (req, res, next) => {
 router.get("/:productId", (req, res, next) => {
   const id = req.params.productId;
   ProductSchema.findById(id)
+  .select("name price productImage productId")
     .exec()
     .then(obj => {
       console.log("from database", obj);
       if (obj) {
         res.status(200);
-        res.send({ message: "find a product from database", selectedObj: {
+        res.send({ message: "find a product by id from database", selectedObj: {
           name: obj.name,
           price: obj.price,
           id: obj.id,
